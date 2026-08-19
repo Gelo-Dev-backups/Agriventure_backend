@@ -1,0 +1,10 @@
+# Real Neon/Postgres connection string, JWT secrets, and SMTP password
+# live here - never commit.
+.env
+
+__pycache__/
+*.pyc
+.venv/
+venv/
+/uploads/*
+!/uploads/.gitkeep
