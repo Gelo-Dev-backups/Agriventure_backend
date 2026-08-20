@@ -77,7 +77,7 @@ def register(request: Request, payload: RegisterRequest):
         with db_cursor(commit=True) as cur:
             cur.execute(
                 '''INSERT INTO "users" (full_name, email, password_hash, otp, otp_expires_at)
-                   VALUES (%s, %s, %s, %s, %s) RETURNING id, full_name, email, is_verified, created_at''',
+                   VALUES (%s, %s, %s, %s, %s) RETURNING id, full_name, email, is_verified, role, created_at''',
                 (
                     payload.fullName.strip(),
                     payload.email.lower().strip(),
@@ -121,7 +121,7 @@ def verify_otp(request: Request, payload: VerifyOtpRequest):
         with db_cursor(commit=True) as cur:
             cur.execute(
                 '''UPDATE "users" SET is_verified = true, otp = NULL, otp_expires_at = NULL
-                   WHERE id = %s RETURNING id, full_name, email, is_verified, created_at''',
+                   WHERE id = %s RETURNING id, full_name, email, is_verified, role, created_at''',
                 (user["id"],),
             )
             user = cur.fetchone()
@@ -299,7 +299,7 @@ def logout(request: Request, current_user: CurrentUser = Depends(get_current_use
 def get_profile(current_user: CurrentUser = Depends(get_current_user)):
     with db_cursor() as cur:
         cur.execute(
-            'SELECT id, full_name, email, is_verified, created_at FROM "users" WHERE id = %s',
+            'SELECT id, full_name, email, is_verified, role, created_at FROM "users" WHERE id = %s',
             (current_user.id,),
         )
         user = cur.fetchone()

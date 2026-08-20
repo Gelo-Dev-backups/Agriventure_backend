@@ -8,6 +8,7 @@ auditable in one place.
 import random
 import string
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 import bcrypt
 import jwt
@@ -64,6 +65,29 @@ def create_refresh_token(user_id: int, email: str) -> str:
         "exp": now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
     }
     return jwt.encode(payload, JWT_REFRESH_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def create_iot_token(user_id: int, email: str, expiry_days: Optional[int]) -> tuple[str, Optional[datetime]]:
+    """
+    Long-lived static token for an 'iot' device account, minted from the
+    admin panel (see routes/admin.py). It's a normal 'access' JWT under the
+    hood - every existing get_current_user()-protected endpoint (sensor
+    ingest included) accepts it unmodified - it's just also persisted in
+    users.iot_token (unlike normal login tokens, which are stateless and
+    never stored) so the admin panel can re-display or regenerate it later.
+
+    expiry_days=None means "never expires" - the 'exp' claim is simply
+    omitted, which PyJWT/most JWT libraries treat as "no expiry check".
+    Returns (token, expires_at) - expires_at is None for a never-expiring token.
+    """
+    now = datetime.now(timezone.utc)
+    payload = {"sub": str(user_id), "email": email, "type": "access", "role": "iot", "iat": now}
+    expires_at = None
+    if expiry_days is not None:
+        expires_at = now + timedelta(days=expiry_days)
+        payload["exp"] = expires_at
+    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return token, expires_at
 
 
 def decode_access_token(token: str) -> dict:

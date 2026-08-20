@@ -19,7 +19,7 @@ router = APIRouter()
 def get_dashboard_summary(current_user: CurrentUser = Depends(get_current_user)):
     with db_cursor() as cur:
         cur.execute(
-            'SELECT id, full_name, email, is_verified, created_at FROM "users" WHERE id = %s',
+            'SELECT id, full_name, email, is_verified, role, created_at FROM "users" WHERE id = %s',
             (current_user.id,),
         )
         user = cur.fetchone()
@@ -56,16 +56,23 @@ def get_dashboard_summary(current_user: CurrentUser = Depends(get_current_user))
         )
         recent_analyses = cur.fetchall()
 
+        # Postgres (unlike MySQL) requires every ORDER BY expression to
+        # appear in the SELECT list when DISTINCT is used - wrap in a
+        # subquery so the outer, non-DISTINCT ORDER BY is unrestricted.
         cur.execute(
-            '''SELECT DISTINCT r.* FROM "recommendations" r
-               LEFT JOIN "cropanalysis" ca ON ca.analysis_id = r.analysis_id
-               LEFT JOIN "sensorreadings" sr ON sr.reading_id = r.reading_id
-               LEFT JOIN "sensors" s ON s.sensor_id = sr.sensor_id
-               LEFT JOIN "farms" fa ON fa.farm_id = ca.farm_id
-               LEFT JOIN "farms" fs ON fs.farm_id = s.farm_id
-               WHERE (fa.user_id = %s OR fs.user_id = %s)
-               ORDER BY r.created_at DESC LIMIT 5''',
-            (current_user.id, current_user.id),
+            '''SELECT * FROM (
+                   SELECT DISTINCT r.* FROM "recommendations" r
+                   LEFT JOIN "cropanalysis" ca ON ca.analysis_id = r.analysis_id
+                   LEFT JOIN "sensorreadings" sr ON sr.reading_id = r.reading_id
+                   LEFT JOIN "sensors" s ON s.sensor_id = sr.sensor_id
+                   LEFT JOIN "farms" fa ON fa.farm_id = ca.farm_id
+                   LEFT JOIN "farms" fs ON fs.farm_id = s.farm_id
+                   LEFT JOIN "farms" fd ON fd.farm_id = r.farm_id
+                   WHERE (fa.user_id = %s OR fs.user_id = %s OR fd.user_id = %s)
+               ) sub
+               ORDER BY CASE priority WHEN 'urgent' THEN 0 WHEN 'maintenance' THEN 1 ELSE 2 END, created_at DESC
+               LIMIT 5''',
+            (current_user.id, current_user.id, current_user.id),
         )
         recent_recommendations = cur.fetchall()
 

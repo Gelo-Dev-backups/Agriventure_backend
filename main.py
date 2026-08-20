@@ -32,6 +32,9 @@ from routes.crop_analysis import router as crop_analysis_router
 from routes.recommendations import router as recommendations_router
 from routes.notifications import router as notifications_router
 from routes.dashboard import router as dashboard_router
+from routes.analytics import router as analytics_router
+from routes.realtime import router as realtime_router
+from routes.admin import router as admin_router
 
 app = FastAPI(
     title=APP_NAME,
@@ -156,6 +159,9 @@ app.include_router(crop_analysis_router, prefix=f"{API_PREFIX}/crop-analysis", t
 app.include_router(recommendations_router, prefix=f"{API_PREFIX}/recommendations", tags=["Recommendations"])
 app.include_router(notifications_router, prefix=f"{API_PREFIX}/notifications", tags=["Notifications"])
 app.include_router(dashboard_router, prefix=f"{API_PREFIX}/dashboard", tags=["Dashboard"])
+app.include_router(analytics_router, prefix=f"{API_PREFIX}/analytics", tags=["Analytics"])
+app.include_router(realtime_router, prefix=f"{API_PREFIX}/realtime", tags=["Realtime"])
+app.include_router(admin_router, prefix=f"{API_PREFIX}/admin", tags=["Admin"])
 
 
 # ---------------------------------------------------------------------------
