@@ -5,6 +5,7 @@ Keeping them centralized keeps controllers thin and gives Swagger/OpenAPI
 docs a single source of truth.
 """
 
+import json
 import re
 from datetime import datetime
 from typing import Optional, List, Any, Generic, TypeVar, Annotated
@@ -31,6 +32,22 @@ def _validate_lenient_email(v: str) -> str:
 
 
 LenientEmail = Annotated[str, BeforeValidator(_validate_lenient_email)]
+
+# farms.boundary_coordinates is `jsonb` in the live Supabase schema (not
+# the `TEXT` this was originally modeled after, matching PHP's
+# schema.sql) - psycopg2 auto-parses jsonb columns into native Python
+# list/dict, but the wire contract Flutter already relies on
+# (Farm._parseBoundary in the app) expects a JSON-ENCODED STRING it
+# jsonDecode()s itself, same as every existing PHP response. Re-encode
+# back to a string here so the API contract stays identical regardless of
+# the underlying column's actual Postgres type.
+def _coerce_json_to_string(v):
+    if v is None or isinstance(v, str):
+        return v
+    return json.dumps(v)
+
+
+JsonAsString = Annotated[Optional[str], BeforeValidator(_coerce_json_to_string)]
 
 
 # ---------------------------------------------------------------------------
@@ -155,7 +172,7 @@ class FarmOut(BaseModel):
     user_id: int
     farm_name: str
     crop_type: Optional[str]
-    boundary_coordinates: Optional[str]
+    boundary_coordinates: JsonAsString = None
     farm_size: Optional[float]
     created_at: Optional[datetime]
     image_url: Optional[str]
