@@ -50,6 +50,15 @@ _cors_raw = os.getenv("CORS_ORIGINS", "*")
 CORS_ORIGINS = ["*"] if _cors_raw.strip() == "*" else [o.strip() for o in _cors_raw.split(",")]
 
 # ---------------------------------------------------------------------------
+# Controls (irrigation) - OFF: there is no irrigation device/actuator yet.
+# AgriVenture is monitoring + advice focused for now. Real kill switch,
+# not a testing-only pause: flip to true when real hardware exists, no
+# other changes needed (see routes/controls.py, ported 1:1 from
+# agriventure_backedn_xampp's ControlsController).
+# ---------------------------------------------------------------------------
+IRRIGATION_CONTROL_ENABLED = os.getenv("IRRIGATION_CONTROL_ENABLED", "False").lower() in ("true", "1", "yes")
+
+# ---------------------------------------------------------------------------
 # Uploads
 # ---------------------------------------------------------------------------
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads/crop_images")
